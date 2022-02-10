@@ -51,6 +51,8 @@ function adjust_rate(r,b)
 		ar=round2(r/4,1)
 	elseif b==10 then
 		ar=round2(r/2,1)
+	else
+		ar=round2(r/1,1)
 	end
 	return ar
 end
@@ -258,6 +260,19 @@ function nslookup(ip)
 end
 
 -------------------------------------
+-- Returns first IP of given host
+-------------------------------------
+function iplookup(host)
+	if host:find("dtd.*%.") or host:find("mid%d+%.") then
+		host=host:match("%.(.*)")
+	end
+	local nso=capture("nslookup "..host)
+	local ip=nso:match("Address 1: (.*)%c")
+	return ip
+end
+
+
+-------------------------------------
 -- Returns traceroute
 -------------------------------------
 function getTraceroute(target)
@@ -274,16 +289,18 @@ function getTraceroute(target)
 	for i,v in pairs(lines) do
 		data = v:splitWhiteSpace()
 		entry = {}
-		node = data[2]:gsub("^mid[0-9]*%.","") 	-- strip midXX.
-		node = node:gsub("^dtdlink%.","")		-- strip dtdlink.
-		node = node:gsub("%.local%.mesh$","")	-- strip .local.mesh
-		entry['nodename'] = node
-		ip = data[3]:match("%((.*)%)")
-		entry['ip'] = ip
-		entry['timeto'] = round2(data[4])
-		entry['timedelta'] = math.abs(round2(data[4] - priortime))
-		priortime = round2(data[4])
-		table.insert(routes, entry)
+		if data[2] ~= "*" then
+			node = data[2]:gsub("^mid[0-9]*%.","") 	-- strip midXX.
+			node = node:gsub("^dtdlink%.","")		-- strip dtdlink.
+			node = node:gsub("%.local%.mesh$","")	-- strip .local.mesh
+			entry['nodename'] = node
+			ip = data[3]:match("%((.*)%)")
+			entry['ip'] = ip
+			entry['timeto'] = round2(data[4])
+			entry['timedelta'] = math.abs(round2(data[4] - priortime))
+			priortime = round2(data[4])
+			table.insert(routes, entry)
+		end
 	end
 	return routes
 end

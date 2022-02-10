@@ -90,6 +90,14 @@ function model.getNodeName()
 end
 
 -------------------------------------
+-- Returns tactical name of the node
+-------------------------------------
+function model.getTacticalName()
+	css=aredn_uci.getNonStandardUciConfType("/etc/local/uci/", "hsmmmesh", "settings")
+	return css[1]['tactical']
+end
+
+-------------------------------------
 -- Returns description of the node
 -------------------------------------
 function model.getNodeDescription()
@@ -101,34 +109,16 @@ end
 -- Returns array [Latitude, Longitude]
 -------------------------------------
 function model.getLatLon()
-	local llfname="/etc/latlon"
-	local lat=""
-	local lon=""
-	if file_exists(llfname) then
-		llfile=io.open(llfname,"r")
-		if llfile~=nil then
-			lat=llfile:read()
-			lon=llfile:read()
-			llfile:close()
-		end
-	end
-	return lat,lon
+	loc=aredn_uci.getUciConfType("aredn", "location")
+	return loc[1]['lat'], loc[1]['lon']
 end
 
 -------------------------------------
 -- Returns Grid Square of Node
 -------------------------------------
 function model.getGridSquare()
-	local gsfname="/etc/gridsquare"
-	local grid=""
-	if file_exists(gsfname) then
-		gsfile=io.open(gsfname,"r")
-		if gsfile~=nil then
-			grid=gsfile:read()
-			gsfile:close()
-		end
-	end
-	return grid
+		loc=aredn_uci.getUciConfType("aredn", "location")
+	return loc[1]['gridsquare']
 end
 
 -------------------------------------
@@ -514,52 +504,30 @@ function model.getCurrentDHCPLeases()
 end
 
 -------------------------------------
--- Returns Local Host Connection Type
--------------------------------------
-function model.getLocalCnxType(hostname)
-	if string.match(hostname,"localhost") then
-		return "Loopback"
-	elseif string.match(hostname,"dtdlink") then
-		return "DTD"
-	elseif hostname:lower() == string.lower( model.getNodeName() ) then
-		return "RF"
-	else
-		return "LAN"
-	end
-end
-
--------------------------------------
 -- Returns Local Hosts
 -------------------------------------
 function model.getLocalHosts()
-	local hosts, line
-	if nixio.fs.access("/etc/hosts") then
-		for line in io.lines("/etc/hosts") do
-			local data = line:match("^([^#;]+)[#;]*(.*)$")  -- line is not a comment
-			if data then
-				local hostname, entries
-				local ip, entries = data:match("^%s*([%[%]%x%.%:]+)%s+(%S.-%S)%s*$")
-
-				if ip then
-					local entry = {
-						["ip"] = ip,
-						["hostnames"] = { },
-						["cnxtype"] = ""
-					}
-					local index = 0
-					for hostname in entries:gmatch("%S+") do
-						hostname = string.gsub(hostname,".local.mesh$","")
-						entry["cnxtype"] = model.getLocalCnxType(hostname)
-						entry["hostnames"][index] = hostname
-						index = index + 1
-					end
-					hosts = hosts or { }
-					hosts[#hosts+1] = entry
-				end
-			end
-		end
-	end
-	return hosts
+  local localhosts = {}
+  myhosts=os.capture('/bin/grep "# myself" /var/run/hosts_olsr|grep -v dtdlink')
+  local lines = myhosts:splitNewLine()
+  data = {}
+  for k,v in pairs(lines) do
+    data = v:splitWhiteSpace()
+    local ip = data[1]
+    local hostname = data[2]
+    if ip and hostname then
+      local entry = {}
+      entry['ip'] = ip
+      entry['hostname'] = hostname
+      if hostname:lower() == string.lower( model.getNodeName() ) then
+        entry['cnxtype'] = "RF"
+      else
+        entry['cnxtype'] = "LAN"
+      end
+      table.insert(localhosts, entry)
+    end
+  end
+  return localhosts
 end
 
 -------------------------------------

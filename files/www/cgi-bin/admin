@@ -25,7 +25,7 @@
     See AREDNLicense.txt for more info.
 
   Attributions to the AREDN Project must be retained in the source code.
-  If importing this code into a new or existing project attribution 
+  If importing this code into a new or existing project attribution
   to the AREDN project must be added to the source code.
 
   You must not misrepresent the origin of the material contained within.
@@ -115,61 +115,11 @@ chomp($mfg);
 $mfgprefix="";
 if($mfg=~ /Ubiquiti/i)
 {
-    $mfgprefix="ubnt"; 
+    $mfgprefix="ubnt";
 } elsif($mfg=~ /Mikrotik/i) {
     $mfgprefix="mikrotik";
 } elsif($mfg=~ /TP-Link/i) {
     $mfgprefix="cpe";
-}
-
-if(${hardwaretype} eq "nanostation-m")
-{
-    ${hardwaretypev}="nano-m"; # Nano XM
-} elsif(${hardwaretype} eq "nanostation-m-xw") {
-    ${hardwaretypev}= "nano-m-xw" ; # Nano XW
-} elsif(${hardwaretype} eq "rb-952ui-5ac2nd") {
-    ${hardwaretypev}= "rb-nor-flash-16M-ac" ;    # hAP AC Lite
-} elsif(${hardwaretype} =~ /rb-911g-[25]hpnd/i or
-	${hardwaretype} =~ /rb-912uag-[25]hpnd/i ) {
-    ${hardwaretypev}= "nand-large" ;    # Basebox 2/5 and QRT 2/5
-} elsif(${hardwaretype} =~ /rb-l[dfhg]+-[25]nd/i or
-	${hardwaretype} =~ /rb-lhg-[25]hpnd/i ) {
-    ${hardwaretypev}= "rb-nor-flash-16M" ;    # LHGs & LDFs
-} elsif($mfgprefix eq "cpe" ) {
-    $hwmodel = `/usr/local/bin/get_model`;
-    chomp($hwmodel);
-    if($hwmodel =~ /CPE210 v1\.[01]/i)
-    {
-        ${hardwaretypev}= "210-220-v1" ;      # v1.0/v1.1
-    } elsif($hwmodel =~ /CPE210 v2\.0/i) {
-        ${hardwaretypev}= "210-v2" ;          # v2.0
-    } elsif($hwmodel =~ /CPE210 v3\.0/i) {
-        ${hardwaretypev}= "210-v3" ;          # v3.0
-    } elsif($hwmodel =~ /CPE220 v2\.0/i) {
-        ${hardwaretypev}= "220-v2" ;          # v3.0
-    } elsif($hwmodel =~ /CPE220 v3\.0/i) {
-        ${hardwaretypev}= "220-v3" ;          # v3.0
-    } elsif($hwmodel =~ /CPE510 v2\.0/i) {
-        ${hardwaretypev}= "510-v2" ;          # v2.0
-    } elsif($hwmodel =~ /CPE510 v3\.0/i) {
-        ${hardwaretypev}= "510-v3" ;          # v3.0
-    } elsif($hwmodel =~ /CPE510/i) {
-        ${hardwaretypev}= "510-520-v1" ;      # CPE510 V1.0/v1.1
-    } elsif($hwmodel =~ /CPE610 v2\.0/i) {
-        ${hardwaretypev}= "610-v2" ;     	    # CPE610 V2.0
-    } elsif($hwmodel =~ /CPE610/i) {
-        ${hardwaretypev}= "610-v1" ;     	    # CPE610 V1.0
-    } elsif($hwmodel =~ /CPE710/i) {
-        ${hardwaretypev}= "710-v1" ;     	    # CPE710 V1.0
-    } elsif($hwmodel =~ /WBS510 v2\.0/i) {
-        $mfgprefix="wbs";
-        ${hardwaretypev}= "510-v2" ;          # WBS510 v2.0
-    } elsif($hwmodel =~ /WBS210 v1\.[012]/i) {
-        $mfgprefix="wbs";
-        ${hardwaretypev}= "210-v1" ;      # WBS210 v1.0/v1.1 
-    }
-} else {
-    ${hardwaretypev}=${hardwaretype};
 }
 
 # refresh fw
@@ -212,7 +162,7 @@ if($parms{button_ul_fw} and -f "/tmp/web/upload/file")
 
     # drop the page cache to take pressure of tmps when checking the firmware
     `echo 3 > /proc/sys/vm/drop_caches`;
-	
+
     # check firmware header
 
 	if(system "/usr/local/bin/firmwarecheck.sh $tmpdir/firmware")
@@ -327,7 +277,7 @@ if($fw_install and -f "$tmpdir/firmware")
     unless($debug)
     {
         # drop the page cache to take pressure of tmps for the upgrade process
-        `echo 3 > /proc/sys/vm/drop_caches`;        
+        `echo 3 > /proc/sys/vm/drop_caches`;
         `/usr/local/bin/upgrade_kill_prep`;
 
         if ( $parms{checkbox_keep_settings} )
@@ -355,7 +305,7 @@ received a new IP address and reconnect with<br>
             close $SYSUPGRADECONF;
             close $TMPSYSUPGRADECONF;
             nvram_set("nodeupgraded","1");
-            
+
             system("tar -czf /tmp/arednsysupgradebackup.tgz -T /tmp/sysupgradefilelist");
             if ($? != 0) {
                 print "
@@ -372,8 +322,8 @@ received a new IP address and reconnect with<br>
 
             system("rm -f /tmp/sysupgradefilelist");
             `/usr/local/bin/spawn_sysupgrade $tmpdir/firmware 2>&1 &`;
-        } 
-        else 
+        }
+        else
         {
             print "
 <center><h2>Firmware will be written in the background.</h2>
@@ -389,7 +339,7 @@ and continue setup of the node in firstboot state.<br>
 ";
             `/sbin/sysupgrade -n $tmpdir/firmware 2>&1 &`;
         }
-        `killall uhttpd &`;            
+        `killall uhttpd &`;
         exit;
     }
 }
@@ -487,7 +437,7 @@ if($parms{button_ul_pkg} and -f "/tmp/web/upload/file")
     system "rm -rf /tmp/opkg-*";
     unlink("/tmp/web/upload/newpkg.ipk");
     system("/usr/local/bin/uploadctlservices","restore") and push @pkg_output, "Failed to restart all services, please reboot this node.\n";
-} 
+}
 
 # download package
 $meshpkgs = system('grep -q ".local.mesh" /etc/opkg/distfeeds.conf');
@@ -503,7 +453,7 @@ if($parms{button_dl_pkg} and $parms{dl_pkg} ne "default")
     {
 	push @pkg_output, "Error: no route to Host\n";
     }
-} 
+}
 
 # refresh package list
 if($parms{button_refresh_pkg})
@@ -517,7 +467,7 @@ if($parms{button_refresh_pkg})
     {
 	push @pkg_output, "Error: no route to Host\n";
     }
-} 
+}
 
 # remove package
 if($parms{button_rm_pkg} and $parms{rm_pkg} ne "default" and not $permpkg{$parms{rm_pkg}})
@@ -574,7 +524,7 @@ if($parms{button_ul_key} and -f "/tmp/web/upload/file")
     }
     unlink("/tmp/web/upload/file");
     system("/usr/local/bin/uploadctlservices","restore") and push @key_output, "Failed to restart all services, please reboot this node.\n";
-} 
+}
 
 # remove key
 if($parms{button_rm_key} and $parms{rm_key} ne "default" and -f $keyfile)
@@ -623,40 +573,7 @@ system "rm -rf /tmp/web/upload $tmpdir" unless $debug;
 #
 
 http_header();
-html_header("$node administration", 0);
-print <<EOF;
-    <script>
-    function validateFirmwareFilename(elem){
-        var hwmfg = "$mfgprefix";
-        var hwtype = "${hardwaretypev}";
-        var searchstring = "";
-        var efn = "";
-        if(hwmfg != "cpe"){
-            if ($mfgprefix == "wbs") {
-                searchstring= ".*wbs" + hwtype + "-sysupgrade.bin$\";
-                efn = "aredn-$fw_version-$mfgprefix${hardwaretypev}-sysupgrade.$
-            } else {
-                searchstring= ".*-" + hwtype + "-sysupgrade.bin$\";
-                efn = "aredn-$fw_version-$mfgprefix-${hardwaretypev}-sysupgrade.bin";
-        } else {
-            searchstring= ".*cpe" + hwtype + "-sysupgrade.bin$\";
-            efn = "aredn-$fw_version-$mfgprefix${hardwaretypev}-sysupgrade.bin";
-        }
-        var re = new RegExp(searchstring,"g");   
-        if(elem.value.match(re)){
-            return true;
-        }else{
-            if (confirm('This filename is NOT appropriate for this device!\\n\\nThis device expects a file such as: ' + efn + ' \\n\\n\\nClick OK to continue if you are CERTAIN that the file is correct.')) {
-                return true;
-            } else {
-                elem.value="";
-                return false;
-            }
-        }
-    }
-    </script>
-EOF
-print "</head>";
+html_header("$node administration", 1);
 print "<body><center>\n";
 alert_banner();
 print "<form method=post action=admin enctype='multipart/form-data'>\n";
@@ -690,9 +607,9 @@ print "<tr><td align=center colspan=3>current version: $fw_version</td></tr>\n";
 print "<tr><td align=center colspan=3>hardware type: (${targettype}) $mfgprefix (${hardwaretype})</td></tr>\n";
 print "<tr>\n";
 print "<td>Upload Firmware</td>\n";
-print "<td><input type=file name=firmfile title='choose the firmware file to install from your hard drive' accept='.bin' onchange='validateFirmwareFilename(this)'></td>\n";
+print "<td><input type=file name=firmfile title='choose the firmware file to install from your hard drive' accept='.bin'></td>\n";
 print "<td align=center><input type=submit name=button_ul_fw value=Upload title='install the firmware'";
-if($tunnel_active) { 
+if($tunnel_active) {
     print " disabled><br><small>Disabled: Tunnels enabled</small>";
 } else {
     print ">";
@@ -742,7 +659,7 @@ print "<tr>\n";
 print "<td>Upload Package</td>\n";
 print "<td><input type=file name=ul_pkg title='choose the .ipk file to install from your hard drive'> </td>\n";
 print "<td align=center><input type=submit name=button_ul_pkg value=Upload title='install the package'";
-if($tunnel_active) { 
+if($tunnel_active) {
     print " disabled><br><small>Disabled: Tunnels enabled</small>";
 } else {
     print ">";

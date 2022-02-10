@@ -119,6 +119,13 @@ push @setting, {
   default => defaultPackageRepos('telephony'),
   postcallback => "writePackageRepo('telephony')"
 };
+push @setting, {
+  key => "aredn.\@downloads[0].pkgs_freifunk",
+  type => "string",
+  desc => "Specifies the URL for the 'freifunk' packages.",
+  default => defaultPackageRepos('freifunk'),
+  postcallback => "writePackageRepo('freifunk')"
+};
 
 push @setting, {
   key => "aredn.\@poe[0].passthrough",
@@ -154,6 +161,18 @@ push @setting, {
   condition => "hasTunnelSoftware()",
   precallback => "restrictTunnelLimitToValidRange",
   postcallback => "adjustTunnelInterfaceCount()"
+};
+push @setting, {
+  key => "aredn.\@meshstatus[0].lowmem",
+  type => "string",
+  desc => "Specifies the low memory threshold (in KB) when we will truncate the mesh status page",
+  default => "10000"
+};
+push @setting, {
+  key => "aredn.\@meshstatus[0].lowroutes",
+  type => "string",
+  desc => "When low memory is detected, limit the number of routes shown on the mesh status page",
+  default => "1000"
 };
 push @setting, {
   key => "aredn.olsr.restart",

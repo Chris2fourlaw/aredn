@@ -17,7 +17,7 @@ UMASK=umask 022
 # set variables based on private or CircleCI build
 ifeq ($(CIRCLECI),true)
 $(info CircleCI build ...)
-FW_VERSION=$(PRIVATE_BUILD_VERSION)-$(GIT_COMMIT)
+FW_VERSION=$(PRIVATE_BUILD_VERSION)
 else
 FW_VERSION=$(PRIVATE_BUILD_VERSION)-$(GIT_BRANCH)-$(GIT_COMMIT)
 endif
@@ -46,7 +46,7 @@ $(OPENWRT_DIR): .stamp-openwrt-removed
 
 # clean up openwrt working copy
 openwrt-clean: stamp-clean-openwrt-cleaned .stamp-openwrt-cleaned
-.stamp-openwrt-cleaned: | $(OPENWRT_DIR) 
+.stamp-openwrt-cleaned: | $(OPENWRT_DIR)
 	cd $(OPENWRT_DIR); \
 	  ./scripts/feeds clean && \
 	  git clean -dff && git fetch && git reset --hard HEAD && \
@@ -100,6 +100,7 @@ feeds-update: stamp-clean-feeds-updated .stamp-feeds-updated
 	cd $(OPENWRT_DIR); ./scripts/feeds install luci-lib-jsonc
 	cd $(OPENWRT_DIR); ./scripts/feeds install luaposix
 	cd $(OPENWRT_DIR); ./scripts/feeds install luasocket
+	cd $(OPENWRT_DIR); ./scripts/feeds install mmc-utils
 	cd $(OPENWRT_DIR); ./scripts/feeds install iperf3
 	touch $@
 
@@ -149,20 +150,6 @@ compile: stamp-clean-compiled .stamp-compiled
 	  ! \( -name "*factory.bin" -o -name "*sysupgrade.bin" -o -name "*initramfs.elf" -o \
 	  -name "*kernel.bin" -o -name sha256sums -o -name "*.buildinfo" -o -name "*.json" \) \
 	  -print \)`; do rm $$FILE; \
-	done;
-	for FILE in `find $(TOP_DIR)/firmware/targets/$(MAINTARGET)/$(SUBTARGET) -type f -a \
-	  \( -name "*ar71xx-generic-*" \
-	  -o -name "*ath79-generic-*" \
-	  -o -name "*ath79-nand-*" \
-	  -o -name "*ar71xx-mikrotik*squashfs*" \
-	  -o -name "*ipq40xx-mikrotik*squashfs*" \
-	  \) -print`; do \
-	  NEWNAME="$${FILE/generic-/}"; \
-	  NEWNAME="$${NEWNAME/squashfs-/}"; \
-	  NEWNAME="$${NEWNAME/-nand-glinet/}"; \
-	  NEWNAME="$${NEWNAME/-ath79-mikrotik/}"; \
-	  NEWNAME="$${NEWNAME/_routerboard/}"; \
-	  mv "$$FILE" "$$NEWNAME"; \
 	done;
 	$(TOP_DIR)/scripts/tests-postbuild.sh
 

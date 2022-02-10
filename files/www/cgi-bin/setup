@@ -224,18 +224,19 @@ if($parms{button_updatelocation})
         # validate values
         if($parms{gridsquare} =~ /^[A-Z][A-Z]\d\d[a-z][a-z]$/)
         {
-            # delete/define file
-            unlink("/etc/gridsquare") if(-f "/etc/gridsquare");
-            my $rcgood=open(my $gs, ">", "/etc/gridsquare");
-            push @errors, "Cannot open gridsquare file" unless $rcgood;
-            print $gs "$parms{gridsquare}\n";
-            close($gs);
+            # set values/commit
+            $rc=&uci_set_indexed_option("aredn","location",0,"gridsquare", $parms{gridsquare});
+            $rc=&uci_commit("aredn");
+            &uci_clone("aredn");
+            push @errors, "Cannot save gridsquare in uci" if $rc ne "0";
             push @output, "Gridsquare updated.\n";
         } else {
             push @errors, "ERROR: Gridsquare format is: 2-uppercase letters, 2-digits, 2-lowercase letters. (AB12cd)\n";
         }
     } else {
-       unlink("/etc/gridsquare") if(-f "/etc/gridsquare");
+       $rc=&uci_set_indexed_option("aredn","location",0,"gridsquare", "");
+       $rc=&uci_commit("aredn");
+       &uci_clone("aredn");
        push @output, "Gridsquare purged.\n";
     }
 
@@ -245,13 +246,12 @@ if($parms{button_updatelocation})
         # validate values
         if($parms{latitude} =~ /^([-+]?\d{1,2}([.]\d+)?)$/ and $parms{longitude} =~ /^([-+]?\d{1,3}([.]\d+)?)$/) {
             if($parms{latitude} >= -90 and $parms{latitude} <= 90 and $parms{longitude} >= -180 and $parms{longitude} <= 180) {
-                # delete/define file
-                unlink("/etc/latlon") if(-f "/etc/latlon");
-                $rcgood=open(my $ll, ">", "/etc/latlon");
-                push @errors, "Cannot open lat/lon file" unless $rcgood;
-                print $ll "$parms{latitude}\n";
-                print $ll "$parms{longitude}\n";
-                close($ll);
+                # set values/commit
+                $rc=&uci_set_indexed_option("aredn","location",0,"lat", $parms{latitude});
+                $rc=&uci_set_indexed_option("aredn","location",0,"lon", $parms{longitude});
+                $rc=&uci_commit("aredn");
+                &uci_clone("aredn");
+                push @errors, "Cannot save latitude/longitude in uci" if $rc ne "0";
                 push @output, "Lat/lon updated.\n";
             } else {
                 push @errors, "ERROR: Lat/lon values must be between -90/90 and -180/180, respectively.\n";
@@ -260,7 +260,10 @@ if($parms{button_updatelocation})
             push @errors, "ERROR: Lat/lon format is decimal: (ex. 30.121456 or -95.911154)\n";
         }
     } else {
-       unlink("/etc/latlon") if(-f "/etc/latlon");
+       $rc=&uci_set_indexed_option("aredn","location",0,"lat", "");
+       $rc=&uci_set_indexed_option("aredn","location",0,"lon", "");
+       $rc=&uci_commit("aredn");
+       &uci_clone("aredn");
        push @output, "Lat/lon purged.\n";
     }
 }
@@ -268,31 +271,9 @@ if($parms{button_updatelocation})
 #
 # retrieve location data
 #
-if(-f "/etc/latlon")
-{
-    $rcgood=open(FILE, "/etc/latlon");
-    push @errors, "ERROR: reading lat/lon data\n" unless $rcgood;
-    while(<FILE>){
-        chomp;
-        push @lines,$_;
-    }
-    close(FILE);
-    $lat=$lines[0];
-    $lon=$lines[1];
-}
-
-@lines=();
-if(-f "/etc/gridsquare")
-{
-    $rcgood=open(FILE, "/etc/gridsquare");
-    push @errors, "ERROR: reading gridsquare data\n" unless $rcgood;
-    while(<FILE>){
-        chomp;
-        push @lines,$_;
-    }
-    close(FILE);
-    $gridsquare=$lines[0];
-}
+$lat=&uci_get_indexed_option("aredn","location",0,"lat");
+$lon=&uci_get_indexed_option("aredn","location",0,"lon");
+$gridsquare=&uci_get_indexed_option("aredn","location",0,"gridsquare");
 
 
 # validate and save configuration
@@ -566,24 +547,91 @@ my ($rc, $maptiles, $leafletcss, $leafletjs);
 
 http_header() unless $debug == 2;
 html_header(nvram_get("node") . " setup", 0);
-if(($pingOk) || ($leafletcss =~ ".local.mesh")) {
-  print "<link rel='stylesheet' href='${leafletcss}' />\n";
-}
-if(($pingOk) || ($leafletjs =~ ".local.mesh")) {
-  print "<script src='${leafletjs}'></script>\n";
-}
-print "</head>";
-print "<body><center>\n";
 
-print "
+print <<EOF;
 <script>
+
+function loadCSS(url, callback) {
+   var head = document.getElementsByTagName('head')[0];
+   var stylesheet = document.createElement('link');
+   stylesheet.rel = 'stylesheet';
+   stylesheet.type = 'text/css';
+   stylesheet.href = url;
+   stylesheet.onload = callback;
+
+   head.appendChild(stylesheet);
+}  
+
+function loadScript(url, callback) {
+   var head = document.getElementsByTagName('head')[0];
+   var script = document.createElement('script');
+   script.type = 'text/javascript';
+   script.src = url;
+   script.onload = callback;
+
+   head.appendChild(script);
+}
+
+var map;
+var marker;
+
+var leafletLoad = function() {
+    map = L.map('map').setView([0.0, 0.0], 1);
+    var dotIcon = L.icon({iconUrl: '/dot.png'});
+EOF
+print "L.tileLayer('$maptiles',";
+print <<EOF;
+    {
+        maxZoom: 18,
+        attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
+            '<a href="http://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a>, ' +
+            'Imagery &copy;<a href="http://stamen.com">Stamen Design</a>',
+        id: 'mapbox.streets'
+    }).addTo(map);
+EOF
+
+if($lat and $lon)
+{
+    print "marker= new L.marker([$lat,$lon],{draggable: true, icon: dotIcon});";
+    print "map.addLayer(marker);";
+    print "map.setView([$lat,$lon],13);";
+    print "marker.on('drag', onMarkerDrag);";
+} else {
+    print "map.on('click', onMapClick);";
+}
+
+print <<EOF;
+}
+
+function onMapClick(e) {
+    marker= new L.marker(e.latlng.wrap(),{draggable: true, icon: dotIcon});
+    map.addLayer(marker);
+    document.getElementsByName('latitude')[0].value=e.latlng.wrap().lat.toFixed(6).toString();
+    document.getElementsByName('longitude')[0].value=e.latlng.wrap().lng.toFixed(6).toString();
+    map.off('click', onMapClick);
+    marker.on('drag', onMarkerDrag);
+}
+
+function onMarkerDrag(e) {
+    var m = e.target;
+    var p = m.getLatLng().wrap();
+    document.getElementsByName('latitude')[0].value=p.lat.toFixed(6).toString();
+    document.getElementsByName('longitude')[0].value=p.lng.toFixed(6).toString();
+}
+
+EOF
+
+# On page load, attempt loading of Leaflet CSS, then Leaflet JS if that works, and finally initialise the map if both have worked.
+if(($pingOk) || ($leafletcss =~ ".local.mesh" && $leafletjs =~ ".local.mesh")) {
+    print "window.onload = function (event) { loadCSS('${leafletcss}',function () { loadScript('${leafletjs}', leafletLoad); }); };";
+}
+print <<EOF;
 
 function findLocation() {
     navigator.geolocation.getCurrentPosition(foundLocation, noLocation);
 }
 
-function foundLocation(position)
-{
+function foundLocation(position) {
     var jlat = position.coords.latitude;
     var jlon = position.coords.longitude;
     // update the fields
@@ -598,10 +646,10 @@ function foundLocation(position)
     }
 }
 
-function noLocation()
-{
+function noLocation() {
     alert('Could not find location.  Try pinning it on the map.');
 }
+
 function updDist(x) {
     var dvs= calcDistance(x);
     var xcm=dvs['miles'];
@@ -619,7 +667,6 @@ function updDist(x) {
     distBox.className = 'dist-norm';
 }
 
-
 function calcDistance(x) {
     // x is in KILOMETERS
     var dvs = new Object();
@@ -627,9 +674,15 @@ function calcDistance(x) {
     dvs['meters']=Math.ceil(x*1000);
     dvs['kilometers']=x;
     return dvs;
-}";
+}
 
-print "
+function doSubmit() {
+    var desc_text = document.mainForm.description_node.value;
+    var singleLine = desc_text.replace(new RegExp( "\\n", "g" ), " ");
+    document.mainForm.description_node.value = singleLine;
+    return true;
+}
+
 function toggleMap(toggleButton) {
     var mapdiv=document.getElementById('map');
     if(toggleButton.value=='hide') {
@@ -644,11 +697,15 @@ function toggleMap(toggleButton) {
         toggleButton.innerHTML='Hide Map';
     }
     // force the map to redraw
-    map.invalidateSize();
+    if(typeof map !== 'undefined') map.invalidateSize();
     return false;
-}";
+}
 
-print "</script>";
+</script>
+EOF
+
+print "</head>";
+print "<body><center>\n";
 
 alert_banner();
 print "<form onSubmit='doSubmit();' name='mainForm' method=post action=/cgi-bin/setup enctype='multipart/form-data'>\n" unless $debug == 2;
@@ -1252,60 +1309,5 @@ show_parse_errors();
 
 page_footer();
 
-print <<EOF;
-<script>
-
-function doSubmit() {
-        var desc_text = document.mainForm.description_node.value;
-        var singleLine = desc_text.replace(new RegExp( "\\n", "g" ), " ");
-        document.mainForm.description_node.value = singleLine;
-        return true;
-}
-
-var map = L.map('map').setView([0.0, 0.0], 1);
-var dotIcon = L.icon({iconUrl: '/dot.png'});
-EOF
-print "L.tileLayer('$maptiles',";
-print <<EOF;
-    {
-            maxZoom: 18,
-            attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
-                '<a href="http://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a>, ' +
-                'Imagery &copy;<a href="http://stamen.com">Stamen Design</a>',
-            id: 'mapbox.streets'
-    }).addTo(map);
-
-var marker;
-
-function onMapClick(e) {
-    marker= new L.marker(e.latlng.wrap(),{draggable: true, icon: dotIcon});
-    map.addLayer(marker);
-    document.getElementsByName('latitude')[0].value=e.latlng.wrap().lat.toFixed(6).toString();
-    document.getElementsByName('longitude')[0].value=e.latlng.wrap().lng.toFixed(6).toString();
-    map.off('click', onMapClick);
-    marker.on('drag', onMarkerDrag);
-}
-EOF
-
-    if($lat and $lon)
-    {
-        print "marker= new L.marker([$lat,$lon],{draggable: true, icon: dotIcon});";
-        print "map.addLayer(marker);";
-        print "map.setView([$lat,$lon],13);";
-        print "marker.on('drag', onMarkerDrag);";
-    } else {
-        print "map.on('click', onMapClick);";
-    }
-
-    print <<EOF;
-    function onMarkerDrag(e) {
-        var m = e.target;
-        var p = m.getLatLng().wrap();
-        document.getElementsByName('latitude')[0].value=p.lat.toFixed(6).toString();
-        document.getElementsByName('longitude')[0].value=p.lng.toFixed(6).toString();
-    }
-    </script>
-EOF
-#}
 print "</body>\n";
 print "</html>\n";

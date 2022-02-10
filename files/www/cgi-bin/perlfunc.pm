@@ -1422,6 +1422,15 @@ sub hardware_info
       'pwroffset'       => '5',
       'usechains'       => 1,
     },
+    '0xe112' => {
+      'name'            => 'Rocket M2 with USB',
+      'comment'         => '',
+      'supported'       => '1',
+      'maxpower'        => '18',
+      'pwroffset'       => '10',
+      'usechains'       => 1,
+      'rfband'          => '2400',
+    },
     '0xe1b2' => {
       'name'            => 'Rocket M2',
       'comment'         => '',
@@ -2074,7 +2083,7 @@ sub getRelease {
 #  my $target = getDistTarget();
 #  my $release = getRelease();
 #  if ($release !~ /\./) {
-#    return "http://downloads.arednmesh.org/snapshots/trunk/" . $target;
+#    return "http://downloads.arednmesh.org/snapshots/" . $target;
 #  } else {
 #    return "http://downloads.arednmesh.org/firmware";
 #  }
@@ -2094,7 +2103,7 @@ sub defaultPackageRepos {
     $urlprefix .= "/releases/" . $nums[0] . "/" . $nums[1] . "/" . $release . "/";
   } else {
     #nightly build or self built firmware
-    $urlprefix .= "/snapshots/trunk/";
+    $urlprefix .= "/snapshots/";
   }
   # have prefix (hopefully), now finish the rest of the url
   if ($repo =~ "aredn_core") {
