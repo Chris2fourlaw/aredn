@@ -95,7 +95,7 @@ function hardware.get_board_id()
     if not name or name == "" or name == "0x0000" then
         name = hardware.get_board().model.name
     end
-    return name
+    return name:chomp()
 end
 
 function hardware.get_board_type()
@@ -126,11 +126,11 @@ function hardware.get_iface_name(name)
     if type and type == "bridge" then
         return "br-" .. name
     end
-    local intfname = cursor:get("network", name, "ifname")
+    local intfname = cursor:get("network", name, "device")
     if intfname then
         return intfname
     end
-    return hardware.get_board().network[name].ifname
+    return hardware.get_board().network[name].device
 end
 
 function hardware.get_link_led()
