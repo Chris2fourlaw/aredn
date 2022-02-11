@@ -11,7 +11,7 @@ GIT_COMMIT=$(shell git rev-parse --short HEAD)
 # set dir and file names
 TOP_DIR=$(shell pwd)
 OPENWRT_DIR=$(TOP_DIR)/openwrt
-TARGET_CONFIG=$(TOP_DIR)/configs/common.config $(TOP_DIR)/configs/$(MAINTARGET)-$(SUBTARGET).config
+TARGET_CONFIG=$(TOP_DIR)/configs/$(MAINTARGET)-$(SUBTARGET).config
 UMASK=umask 022
 
 # set variables based on private or CircleCI build
@@ -76,6 +76,7 @@ feeds-update: stamp-clean-feeds-updated .stamp-feeds-updated
 .stamp-feeds-updated: $(OPENWRT_DIR)/feeds.conf
 	cd $(OPENWRT_DIR); ./scripts/feeds uninstall -a
 	cd $(OPENWRT_DIR); ./scripts/feeds update -a
+	cd $(OPENWRT_DIR); ./scripts/feeds install libpam
 	cd $(OPENWRT_DIR); ./scripts/feeds install libcap
 	cd $(OPENWRT_DIR); ./scripts/feeds install jansson
 	cd $(OPENWRT_DIR); ./scripts/feeds install libidn2
@@ -84,7 +85,6 @@ feeds-update: stamp-clean-feeds-updated .stamp-feeds-updated
 	cd $(OPENWRT_DIR); ./scripts/feeds install libidn
 	cd $(OPENWRT_DIR); ./scripts/feeds install libopenldap
 	cd $(OPENWRT_DIR); ./scripts/feeds install libgnutls
-	cd $(OPENWRT_DIR); ./scripts/feeds install libpam
 	cd $(OPENWRT_DIR); ./scripts/feeds install libnetsnmp
 	cd $(OPENWRT_DIR); ./scripts/feeds install -p arednpackages olsrd
 	cd $(OPENWRT_DIR); ./scripts/feeds install perl
@@ -101,6 +101,7 @@ feeds-update: stamp-clean-feeds-updated .stamp-feeds-updated
 	cd $(OPENWRT_DIR); ./scripts/feeds install luaposix
 	cd $(OPENWRT_DIR); ./scripts/feeds install luasocket
 	cd $(OPENWRT_DIR); ./scripts/feeds install mmc-utils
+	cd $(OPENWRT_DIR); ./scripts/feeds install iperf3
 	touch $@
 
 # prepare patch
@@ -145,9 +146,9 @@ compile: stamp-clean-compiled .stamp-compiled
 	$(TOP_DIR)/scripts/tests-prebuild.sh
 	$(UMASK); \
 	  $(MAKE) -C $(OPENWRT_DIR) $(MAKE_ARGS)
-	for FILE in `find $(TOP_DIR)/firmware/targets/ -path "*packages" -prune -o \( -type f -a \
+	for FILE in `find $(TOP_DIR)/firmware/targets/$(MAINTARGET)/$(SUBTARGET) -path "*packages" -prune -o \( -type f -a \
 	  ! \( -name "*factory.bin" -o -name "*sysupgrade.bin" -o -name "*initramfs.elf" -o \
-	  -name sha256sums -o -name "*.buildinfo" -o -name "*.json" \) \
+	  -name "*kernel.bin" -o -name sha256sums -o -name "*.buildinfo" -o -name "*.json" \) \
 	  -print \)`; do rm $$FILE; \
 	done;
 	$(TOP_DIR)/scripts/tests-postbuild.sh

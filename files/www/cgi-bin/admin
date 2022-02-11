@@ -25,7 +25,7 @@
     See AREDNLicense.txt for more info.
 
   Attributions to the AREDN Project must be retained in the source code.
-  If importing this code into a new or existing project attribution 
+  If importing this code into a new or existing project attribution
   to the AREDN project must be added to the source code.
 
   You must not misrepresent the origin of the material contained within.
@@ -115,7 +115,7 @@ chomp($mfg);
 $mfgprefix="";
 if($mfg=~ /Ubiquiti/i)
 {
-    $mfgprefix="ubnt"; 
+    $mfgprefix="ubnt";
 } elsif($mfg=~ /Mikrotik/i) {
     $mfgprefix="mikrotik";
 } elsif($mfg=~ /TP-Link/i) {
@@ -162,7 +162,7 @@ if($parms{button_ul_fw} and -f "/tmp/web/upload/file")
 
     # drop the page cache to take pressure of tmps when checking the firmware
     `echo 3 > /proc/sys/vm/drop_caches`;
-	
+
     # check firmware header
 
 	if(system "/usr/local/bin/firmwarecheck.sh $tmpdir/firmware")
@@ -277,7 +277,7 @@ if($fw_install and -f "$tmpdir/firmware")
     unless($debug)
     {
         # drop the page cache to take pressure of tmps for the upgrade process
-        `echo 3 > /proc/sys/vm/drop_caches`;        
+        `echo 3 > /proc/sys/vm/drop_caches`;
         `/usr/local/bin/upgrade_kill_prep`;
 
         if ( $parms{checkbox_keep_settings} )
@@ -305,7 +305,7 @@ received a new IP address and reconnect with<br>
             close $SYSUPGRADECONF;
             close $TMPSYSUPGRADECONF;
             nvram_set("nodeupgraded","1");
-            
+
             system("tar -czf /tmp/arednsysupgradebackup.tgz -T /tmp/sysupgradefilelist");
             if ($? != 0) {
                 print "
@@ -322,8 +322,8 @@ received a new IP address and reconnect with<br>
 
             system("rm -f /tmp/sysupgradefilelist");
             `/usr/local/bin/spawn_sysupgrade $tmpdir/firmware 2>&1 &`;
-        } 
-        else 
+        }
+        else
         {
             print "
 <center><h2>Firmware will be written in the background.</h2>
@@ -339,7 +339,7 @@ and continue setup of the node in firstboot state.<br>
 ";
             `/sbin/sysupgrade -n $tmpdir/firmware 2>&1 &`;
         }
-        `killall uhttpd &`;            
+        `killall uhttpd &`;
         exit;
     }
 }
@@ -437,7 +437,7 @@ if($parms{button_ul_pkg} and -f "/tmp/web/upload/file")
     system "rm -rf /tmp/opkg-*";
     unlink("/tmp/web/upload/newpkg.ipk");
     system("/usr/local/bin/uploadctlservices","restore") and push @pkg_output, "Failed to restart all services, please reboot this node.\n";
-} 
+}
 
 # download package
 $meshpkgs = system('grep -q ".local.mesh" /etc/opkg/distfeeds.conf');
@@ -453,7 +453,7 @@ if($parms{button_dl_pkg} and $parms{dl_pkg} ne "default")
     {
 	push @pkg_output, "Error: no route to Host\n";
     }
-} 
+}
 
 # refresh package list
 if($parms{button_refresh_pkg})
@@ -467,7 +467,7 @@ if($parms{button_refresh_pkg})
     {
 	push @pkg_output, "Error: no route to Host\n";
     }
-} 
+}
 
 # remove package
 if($parms{button_rm_pkg} and $parms{rm_pkg} ne "default" and not $permpkg{$parms{rm_pkg}})
@@ -524,7 +524,7 @@ if($parms{button_ul_key} and -f "/tmp/web/upload/file")
     }
     unlink("/tmp/web/upload/file");
     system("/usr/local/bin/uploadctlservices","restore") and push @key_output, "Failed to restart all services, please reboot this node.\n";
-} 
+}
 
 # remove key
 if($parms{button_rm_key} and $parms{rm_key} ne "default" and -f $keyfile)
@@ -609,7 +609,7 @@ print "<tr>\n";
 print "<td>Upload Firmware</td>\n";
 print "<td><input type=file name=firmfile title='choose the firmware file to install from your hard drive' accept='.bin'></td>\n";
 print "<td align=center><input type=submit name=button_ul_fw value=Upload title='install the firmware'";
-if($tunnel_active) { 
+if($tunnel_active) {
     print " disabled><br><small>Disabled: Tunnels enabled</small>";
 } else {
     print ">";
@@ -659,7 +659,7 @@ print "<tr>\n";
 print "<td>Upload Package</td>\n";
 print "<td><input type=file name=ul_pkg title='choose the .ipk file to install from your hard drive'> </td>\n";
 print "<td align=center><input type=submit name=button_ul_pkg value=Upload title='install the package'";
-if($tunnel_active) { 
+if($tunnel_active) {
     print " disabled><br><small>Disabled: Tunnels enabled</small>";
 } else {
     print ">";

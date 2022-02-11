@@ -16,4 +16,4 @@ PRIVATE_BUILD_PACKAGES=http://downloads.arednmesh.org/releases/3/22/3.22.1.0
 
 # These options are for more complex changes
 SHELL:=$(shell which bash)
-TARGET=ar71xx-generic
+TARGET=ath79-generic

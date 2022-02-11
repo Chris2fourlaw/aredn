@@ -1,8 +1,6 @@
-Index: openwrt/package/kernel/mac80211/patches/ath/301-extended-spectrum.patch
-===================================================================
 --- /dev/null
-+++ openwrt/package/kernel/mac80211/patches/ath/301-extended-spectrum.patch
-@@ -0,0 +1,152 @@
++++ b/package/kernel/mac80211/patches/ath/301-extended-spectrum.patch
+@@ -0,0 +1,151 @@
 +--- a/drivers/net/wireless/ath/ath9k/common-init.c
 ++++ b/drivers/net/wireless/ath/ath9k/common-init.c
 +39a40,41
@@ -97,68 +95,65 @@ Index: openwrt/package/kernel/mac80211/patches/ath/301-extended-spectrum.patch
 + #define REG_WRITE(_ah, _reg, _val) \
 +--- a/drivers/net/wireless/ath/regd.c
 ++++ b/drivers/net/wireless/ath/regd.c
-+@@ -33,6 +33,7 @@ static int __ath_regd_init(struct ath_re
++@@ -33,6 +33,7 @@
 +  */
 + 
 + /* Only these channels all allow active scan on all world regulatory domains */
-++#define ATH9K_2GHZ_CHN02_00	REG_RULE(2392-5, 2407+10, 40, 0, 20, 0)
-+ #define ATH9K_2GHZ_CH01_11	REG_RULE(2412-10, 2462+10, 40, 0, 20, 0)
+++#define ATH_2GHZ_CHN02_00	REG_RULE(2392-5, 2407+10, 40, 0, 20, 0)
++ #define ATH_2GHZ_CH01_11	REG_RULE(2412-10, 2462+10, 40, 0, 20, 0)
 + 
 + /* We enable active scan on these a case by case basis by regulatory domain */
-+@@ -46,17 +47,25 @@ static int __ath_regd_init(struct ath_re
-+ #define ATH9K_5GHZ_5150_5350	REG_RULE(5150-10, 5240+10, 80, 0, 30, 0),\
-+ 				REG_RULE(5260-10, 5350+10, 80, 0, 30,\
++@@ -45,17 +46,24 @@
++ /* We allow IBSS on these on a case by case basis by regulatory domain */
++ #define ATH_5GHZ_5150_5350	REG_RULE(5150-10, 5350+10, 80, 0, 30,\
 + 					 NL80211_RRF_NO_IR)
-++#define ATH9K_5GHZ_5320_5490    REG_RULE(5320-10, 5490+10, 80, 0, 30,\
+++#define ATH_5GHZ_5320_5490	REG_RULE(5320-10, 5490+10, 80, 0, 30,\
 ++					 NL80211_RRF_NO_IR)
-+ #define ATH9K_5GHZ_5470_5850	REG_RULE(5470-10, 5850+10, 80, 0, 30,\
++ #define ATH_5GHZ_5470_5850	REG_RULE(5470-10, 5850+10, 80, 0, 30,\
 + 					 NL80211_RRF_NO_IR)
-+ #define ATH9K_5GHZ_5725_5850	REG_RULE(5725-10, 5850+10, 80, 0, 30,\
++ #define ATH_5GHZ_5725_5850	REG_RULE(5725-10, 5850+10, 80, 0, 30,\
 + 					 NL80211_RRF_NO_IR)
-++#define ATH9K_5GHZ_5850_5925    REG_RULE(5850-10, 5925+5, 80, 0, 30,\
+++#define ATH_5GHZ_5850_5925	REG_RULE(5850-10, 5925+5, 80, 0, 30,\
 ++					 NL80211_RRF_NO_IR)
-++
 + 
-+-#define ATH9K_2GHZ_ALL		ATH9K_2GHZ_CH01_11, \
-++#define ATH9K_2GHZ_ALL		ATH9K_2GHZ_CHN02_00, \
-++				ATH9K_2GHZ_CH01_11, \
-+ 				ATH9K_2GHZ_CH12_13, \
-+ 				ATH9K_2GHZ_CH14
++-#define ATH_2GHZ_ALL		ATH_2GHZ_CH01_11, \
+++#define ATH_2GHZ_ALL		ATH_2GHZ_CHN02_00, \
+++				ATH_2GHZ_CH01_11, \
++ 				ATH_2GHZ_CH12_13, \
++ 				ATH_2GHZ_CH14
 + 
-+ #define ATH9K_5GHZ_ALL		ATH9K_5GHZ_5150_5350, \
-+-				ATH9K_5GHZ_5470_5850
-++				ATH9K_5GHZ_5320_5490, \
-++				ATH9K_5GHZ_5470_5850, \
-++				ATH9K_5GHZ_5850_5925
++ #define ATH_5GHZ_ALL		ATH_5GHZ_5150_5350, \
++-				ATH_5GHZ_5470_5850
+++				ATH_5GHZ_5320_5490, \
+++				ATH_5GHZ_5470_5850, \
+++				ATH_5GHZ_5850_5925
 + 
 + /* This one skips what we call "mid band" */
-+ #define ATH9K_5GHZ_NO_MIDBAND	ATH9K_5GHZ_5150_5350, \
++ #define ATH_5GHZ_NO_MIDBAND	ATH_5GHZ_5150_5350, \
 +--- a/net/wireless/util.c
 ++++ b/net/wireless/util.c
-+@@ -72,13 +72,18 @@ int ieee80211_channel_to_frequency(int c
++@@ -80,13 +80,18 @@
 + 		return 0; /* not supported */
 + 	switch (band) {
 + 	case NL80211_BAND_2GHZ:
 ++		chan = (int)(char)chan;
 + 		if (chan == 14)
-+ 			return 2484;
++ 			return MHZ_TO_KHZ(2484);
 ++		else if (chan == 255)
-++			return 2402;
+++			return MHZ_TO_KHZ(2402);
 ++		else if (chan == 254)
-++			return 2397;
+++			return MHZ_TO_KHZ(2397);
 + 		else if (chan < 14)
-+ 			return 2407 + chan * 5;
++ 			return MHZ_TO_KHZ(2407 + chan * 5);
 + 		break;
 + 	case NL80211_BAND_5GHZ:
 +-		if (chan >= 182 && chan <= 196)
 ++		if (chan >= 187 && chan <= 196)
-+ 			return 4000 + chan * 5;
++ 			return MHZ_TO_KHZ(4000 + chan * 5);
 + 		else
-+ 			return 5000 + chan * 5;
-Index: openwrt/package/network/utils/iw/patches/300-extended_spectrum.patch
-===================================================================
++ 			return MHZ_TO_KHZ(5000 + chan * 5);
 --- /dev/null
-+++ openwrt/package/network/utils/iw/patches/300-extended_spectrum.patch
++++ b/package/network/utils/iw/patches/300-extended_spectrum.patch
 @@ -0,0 +1,39 @@
 +--- a/scan.c
 ++++ b/scan.c
@@ -199,10 +194,8 @@ Index: openwrt/package/network/utils/iw/patches/300-extended_spectrum.patch
 + 			return 4000 + chan * 5;
 + 		else
 + 			return 5000 + chan * 5;
-Index: openwrt/package/network/utils/iwinfo/patches/300-extended-spectrum.patch
-===================================================================
 --- /dev/null
-+++ openwrt/package/network/utils/iwinfo/patches/300-extended-spectrum.patch
++++ b/package/network/utils/iwinfo/patches/300-extended-spectrum.patch
 @@ -0,0 +1,74 @@
 +--- a/iwinfo_cli.c
 ++++ b/iwinfo_cli.c
@@ -278,3 +271,104 @@ Index: openwrt/package/network/utils/iwinfo/patches/300-extended-spectrum.patch
 + 			return (channel * 5) + 5000;
 + 	}
 + 
+--- /dev/null
++++ b/package/kernel/ath10k-ct/patches/999-0000-ath10k-part97-chan-extend.patch
+@@ -0,0 +1,98 @@
++--- a/ath10k-5.10/core.h
+++++ b/ath10k-5.10/core.h
++@@ -49,8 +49,8 @@
++ #define WMI_READY_TIMEOUT (5 * HZ)
++ #define ATH10K_FLUSH_TIMEOUT_HZ (5 * HZ)
++ #define ATH10K_CONNECTION_LOSS_HZ (3 * HZ)
++-#define ATH10K_NUM_CHANS 41
++-#define ATH10K_MAX_5G_CHAN 173
+++#define ATH10K_NUM_CHANS 86 
+++#define ATH10K_MAX_5G_CHAN 184
++ 
++ /* Antenna noise floor */
++ #define ATH10K_DEFAULT_NOISE_FLOOR -95
++--- a/ath10k-5.10/mac.c
+++++ b/ath10k-5.10/mac.c
++@@ -9089,6 +9089,8 @@
++ }
++ 
++ static const struct ieee80211_channel ath10k_2ghz_channels[] = {
+++	CHAN2G(254, 2397, 0),
+++	CHAN2G(255, 2402, 0),
++ 	CHAN2G(1, 2412, 0),
++ 	CHAN2G(2, 2417, 0),
++ 	CHAN2G(3, 2422, 0),
++@@ -9122,17 +9124,60 @@
++ 	CHAN5G(120, 5600, 0),
++ 	CHAN5G(124, 5620, 0),
++ 	CHAN5G(128, 5640, 0),
+++	CHAN5G(131, 5655, 0),
++ 	CHAN5G(132, 5660, 0),
+++	CHAN5G(133, 5665, 0),
+++	CHAN5G(134, 5670, 0),
+++	CHAN5G(135, 5675, 0),
++ 	CHAN5G(136, 5680, 0),
+++	CHAN5G(137, 5685, 0),
+++	CHAN5G(138, 5690, 0),
+++	CHAN5G(139, 5695, 0),
++ 	CHAN5G(140, 5700, 0),
+++	CHAN5G(141, 5705, 0),
+++	CHAN5G(142, 5710, 0),
+++	CHAN5G(143, 5715, 0),
++ 	CHAN5G(144, 5720, 0),
+++	CHAN5G(145, 5725, 0),
+++	CHAN5G(146, 5730, 0),
+++	CHAN5G(147, 5735, 0),
+++	CHAN5G(148, 5740, 0),
++ 	CHAN5G(149, 5745, 0),
+++	CHAN5G(150, 5750, 0),
+++	CHAN5G(151, 5755, 0),
+++	CHAN5G(152, 5760, 0),
++ 	CHAN5G(153, 5765, 0),
+++	CHAN5G(154, 5770, 0),
+++	CHAN5G(155, 5775, 0),
+++	CHAN5G(156, 5780, 0),
++ 	CHAN5G(157, 5785, 0),
+++	CHAN5G(158, 5790, 0),
+++	CHAN5G(159, 5795, 0),
+++	CHAN5G(160, 5800, 0),
++ 	CHAN5G(161, 5805, 0),
+++	CHAN5G(162, 5810, 0),
+++	CHAN5G(163, 5815, 0),
+++	CHAN5G(164, 5820, 0),
++ 	CHAN5G(165, 5825, 0),
+++	CHAN5G(166, 5830, 0),
+++	CHAN5G(167, 5835, 0),
+++	CHAN5G(168, 5840, 0),
++ 	CHAN5G(169, 5845, 0),
+++	CHAN5G(170, 5850, 0),
+++	CHAN5G(171, 5855, 0),
+++	CHAN5G(172, 5860, 0),
++ 	CHAN5G(173, 5865, 0),
+++	CHAN5G(174, 5870, 0),
+++	CHAN5G(175, 5875, 0),
+++	CHAN5G(176, 5880, 0),
+++	CHAN5G(177, 5885, 0),
+++	CHAN5G(178, 5890, 0),
+++	CHAN5G(179, 5895, 0),
+++	CHAN5G(180, 5900, 0),
+++	CHAN5G(181, 5905, 0),
+++	CHAN5G(182, 5910, 0),
+++	CHAN5G(183, 5915, 0),
+++	CHAN5G(184, 5920, 0),
++ 	/* If you add more, you may need to change ATH10K_MAX_5G_CHAN */
++ 	/* And you will definitely need to change ATH10K_NUM_CHANS in core.h */
++ };
++--- a/ath10k-5.10/wmi.h
+++++ b/ath10k-5.10/wmi.h
++@@ -3355,6 +3355,10 @@
++ 
++ /* passively scan all channels including active channels */
++ #define WMI_SCAN_FLAG_PASSIVE        0x1
+++/** set HALF (10MHz) rate support */
+++#define WMI_SCAN_FLAG_HALF_RATE_SUPPORT    0x20000
+++/** set Quarter (5MHz) rate support */
+++#define WMI_SCAN_FLAG_QUARTER_RATE_SUPPORT 0x40000
++ /* add wild card ssid probe request even though ssid_list is specified. */
++ #define WMI_SCAN_ADD_BCAST_PROBE_REQ 0x2
++ /* add cck rates to rates/xrate ie for the generated probe request */

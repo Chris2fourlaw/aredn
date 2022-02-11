@@ -312,7 +312,7 @@ sub reboot_page
   $link = "/cgi-bin/status" unless $link;
 
   # is the browser coming from the lan?
-  ($lanip, $lanmask, $junk, $lannet) = &get_ip4_network(get_interface("lan"));
+  ($lanip, $lanmask, $junk, $lannet) = &get_ip4_network("br-lan");
   my($browser) = $ENV{REMOTE_ADDR} =~ /::ffff:([\d\.]+)/;
   my $fromlan = validate_same_subnet($browser, $lanip, $lanmask);
   $junk = ""; # dummy to avoid warning
@@ -568,10 +568,10 @@ sub get_wlan2phy
 # load the setup file
 sub load_cfg
 {
-  #my $mac2 = nvram_get("mac2");
+  chomp ($lanintf=`cat /etc/aredn_include/lan.network.config | head -1 | cut -f3 -d' ' | sed -e "s/'//g"`);
   my $node = nvram_get("node");
-  my $mac2 = mac2ip(get_mac(get_interface("wifi")), 0);
-  my $dtdmac = mac2ip(get_mac(get_interface("lan")), 0);
+  my $mac2 = mac2ip(get_mac("wlan0"), 0);
+  my $dtdmac = mac2ip(get_mac($lanintf, 0));
   open(FILE, $_[0]) or return 0;
   while(defined ($line = <FILE>))
   {
@@ -625,7 +625,7 @@ sub save_setup
 
 sub get_wifi_signal
 {
-  my $wifiintf = `uci -q get network.wifi.ifname`;
+  my $wifiintf = get_interface("wifi");
   chomp $wifiintf;
   my $phy = get_wlan2phy("$wifiintf");
   my ($SignalLevel) = "N/A";
@@ -974,15 +974,6 @@ sub hardware_boardid
 sub hardware_info
 {
   %model = (
-    'Meraki MR16' => {
-      'name'            => 'Meraki MR16',
-      'comment'         => '',
-      'supported'       => '1',
-      'maxpower'        => '21',
-      'pwroffset'       => '0',
-      'usechains'       => 0,
-      'rfband'          => '2400',
-    },
     'GL.iNet GL-AR150' => {
       'name'            => 'GL.iNet GL-AR150',
       'comment'         => '',
@@ -990,7 +981,6 @@ sub hardware_info
       'maxpower'        => '18',
       'pwroffset'       => '0',
       'usechains'       => 0,
-      'rfband'          => '2400',
     },
     'GL.iNet GL-AR300M' => {
       'name'            => 'GL.iNet GL-AR300M',
@@ -999,7 +989,6 @@ sub hardware_info
       'maxpower'        => '23',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '2400',
     },
     'GL.iNet GL-USB150' => {
       'name'            => 'GL.iNet GL-USB150',
@@ -1008,7 +997,6 @@ sub hardware_info
       'maxpower'        => '20',
       'pwroffset'       => '0',
       'usechains'       => 0,
-      'rfband'          => '2400',
     },
     'GL.iNet GL-AR750' => {
       'name'            => 'GL.iNet GL-AR750',
@@ -1017,7 +1005,14 @@ sub hardware_info
       'maxpower'        => '23',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '2400',
+    },
+    'GL.iNet GL-AR750S (NOR/NAND)' => {
+      'name'            => 'GL.iNet GL-AR750S (NOR/NAND)',
+      'comment'         => '',
+      'supported'       => '1',
+      'maxpower'        => '23',
+      'pwroffset'       => '0',
+      'usechains'       => 1,
     },
     'TP-Link CPE210 v1' => {
       'name'            => 'TP-Link CPE210 v1',
@@ -1026,7 +1021,6 @@ sub hardware_info
       'maxpower'        => '23',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '2400',
       'chanpower'       => { 1 => '22', 14 => '23' },
     },
     'TP-LINK CPE210 v2' => {
@@ -1036,7 +1030,6 @@ sub hardware_info
       'maxpower'        => '29',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '2400',
       'chanpower'       => { 1 => '27', 2 => '28', 9 => '29', 14 => '27' },
     },
     'TP-LINK CPE210 v3' => {
@@ -1046,7 +1039,6 @@ sub hardware_info
       'maxpower'        => '25',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '2400',
       'chanpower'       => { 1 => '21', 2 => '25', 11 => '18' },
     },
     'TP-Link CPE220 v2' => {
@@ -1056,7 +1048,6 @@ sub hardware_info
       'maxpower'        => '30',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '2400',
       'chanpower'       => { 1 => '25', 2 => '28', 11 => '27'  },
     },
     'TP-Link CPE220 v3' => {
@@ -1066,7 +1057,6 @@ sub hardware_info
       'maxpower'        => '30',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '2400',
       'chanpower'       => { 1 => '25', 2 => '28', 11 => '27'  },
     },
     'TP-Link CPE510 v1' => {
@@ -1076,7 +1066,6 @@ sub hardware_info
       'maxpower'        => '23',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
       'chanpower'       => { 48 => '10', 149 => '17', 184 => '23' },
     },
     'TP-Link CPE510 v2' => {
@@ -1086,7 +1075,6 @@ sub hardware_info
       'maxpower'        => '26',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
       'chanpower'       => { 140 => '17', 184 => '26' },
     },
     'TP-Link CPE510 v3' => {
@@ -1096,7 +1084,6 @@ sub hardware_info
       'maxpower'        => '26',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
       'chanpower'       => { 140 => '17', 184 => '26' },
     },
     'TP-Link CPE610 v1' => {
@@ -1106,7 +1093,6 @@ sub hardware_info
       'maxpower'        => '30',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
       'chanpower'       => { 133 => '15', 141 => '26', 143 => '25' , 149 => '15' , 165 => '14', 166 => '25' },
     },
     'TP-Link CPE610 v2' => {
@@ -1116,7 +1102,6 @@ sub hardware_info
       'maxpower'        => '30',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
       'chanpower'       => { 133 => '15', 141 => '26', 143 => '25' , 149 => '15' , 165 => '14', 166 => '25' },
     },
     'TP-Link WBS210 v1' => {
@@ -1126,7 +1111,6 @@ sub hardware_info
       'maxpower'        => '27',
       'pwroffset'       => '0',
       'usechains'       => '1',
-      'rfband'          => '2400',
       'chanpower'       => { 1 => '13', 10 => '18', 11 => '13', 14 => '27' },
     },
     'TP-Link WBS210 v2' => {
@@ -1136,7 +1120,6 @@ sub hardware_info
       'maxpower'        => '27',
       'pwroffset'       => '0',
       'usechains'       => '1',
-      'rfband'          => '2400',
       'chanpower'       => { 1 => '13', 10 => '18', 11 => '13', 14 => '27' },
     },
     'TP-Link WBS510 v1' => {
@@ -1146,7 +1129,6 @@ sub hardware_info
       'maxpower'        => '26',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
       'chanpower'       => { 133 => '26', 149 => '24', 157 => '23', 158 => '26' },
     },
     'TP-Link WBS510 v2' => {
@@ -1156,7 +1138,6 @@ sub hardware_info
       'maxpower'        => '26',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
       'chanpower'       => { 133 => '26', 149 => '24', 157 => '23', 158 => '26' },
     },
     'Mikrotik RouterBOARD 911G-2HPnD' => {
@@ -1166,16 +1147,6 @@ sub hardware_info
       'maxpower'        => '30',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '2400',
-    },
-    'Mikrotik RouterBOARD RB911G-2HPnD' => {
-      'name'            => 'Mikrotik RouterBOARD RB911G-2HPnD',
-      'comment'         => '',
-      'supported'       => '1',
-      'maxpower'        => '30',
-      'pwroffset'       => '0',
-      'usechains'       => 1,
-      'rfband'          => '2400',
     },
     'Mikrotik RouterBOARD 911G-5HPnD' => {
       'name'            => 'Mikrotik RouterBOARD 911G-5HPnD',
@@ -1184,16 +1155,6 @@ sub hardware_info
       'maxpower'        => '30',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
-    },
-    'Mikrotik RouterBOARD RB911G-5HPnD' => {
-      'name'            => 'Mikrotik RouterBOARD RB911G-5HPnD',
-      'comment'         => '',
-      'supported'       => '1',
-      'maxpower'        => '30',
-      'pwroffset'       => '0',
-      'usechains'       => 1,
-      'rfband'          => '5800ubntus',
     },
     'MikroTik RouterBOARD 952Ui-5ac2nD' => {
       'name'            => 'MikroTik RouterBOARD 952Ui-5ac2nD',
@@ -1202,7 +1163,6 @@ sub hardware_info
       'maxpower'        => '22',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '2400',
     },
     'MikroTik RouterBOARD RB952Ui-5ac2nD' => {
       'name'            => 'MikroTik RouterBOARD RB952Ui-5ac2nD',
@@ -1211,7 +1171,14 @@ sub hardware_info
       'maxpower'        => '22',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '2400',
+    },
+    'MikroTik hAP ac2' => {
+      'name'            => 'MikroTik hAP ac2 (RBD52G-5HacD2HnD-TC)',
+      'comment'         => '',
+      'supported'       => '1',
+      'maxpower'        => '22',
+      'pwroffset'       => '0',
+      'usechains'       => 1,
     },
     'Mikrotik RouterBOARD 912UAG-2HPnD' => {
       'name'            => 'Mikrotik RouterBOARD 912UAG-2HPnD',
@@ -1220,16 +1187,6 @@ sub hardware_info
       'maxpower'        => '30',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '2400',
-    },
-    'Mikrotik RouterBOARD RB912UAG-2HPnD' => {
-      'name'            => 'Mikrotik RouterBOARD RB912UAG-2HPnD',
-      'comment'         => '',
-      'supported'       => '1',
-      'maxpower'        => '30',
-      'pwroffset'       => '0',
-      'usechains'       => 1,
-      'rfband'          => '2400',
     },
     'Mikrotik RouterBOARD 912UAG-5HPnD' => {
       'name'            => 'Mikrotik RouterBOARD 912UAG-5HPnD',
@@ -1238,16 +1195,6 @@ sub hardware_info
       'maxpower'        => '30',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
-    },
-    'Mikrotik RouterBOARD RB912UAG-5HPnD' => {
-      'name'            => 'Mikrotik RouterBOARD RB912UAG-5HPnD',
-      'comment'         => '',
-      'supported'       => '1',
-      'maxpower'        => '30',
-      'pwroffset'       => '0',
-      'usechains'       => 1,
-      'rfband'          => '5800ubntus',
     },
     'MikroTik RouterBOARD LDF-5nD' => {
       'name'            => 'MikroTik RouterBOARD LDF-5nD',
@@ -1256,7 +1203,6 @@ sub hardware_info
       'maxpower'        => '25',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
     },
     'MikroTik RouterBOARD LDF-2nD' => {
       'name'            => 'MikroTik RouterBOARD LDF-2nD',
@@ -1265,7 +1211,6 @@ sub hardware_info
       'maxpower'        => '28',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '2400',
     },
     'MikroTik RouterBOARD RBLDF-5nD' => {
       'name'            => 'MikroTik RouterBOARD RBLDF-5nD',
@@ -1274,7 +1219,6 @@ sub hardware_info
       'maxpower'        => '25',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
     },
     'MikroTik RouterBOARD RBLDF-2nD' => {
       'name'            => 'MikroTik RouterBOARD RBLDF-2nD',
@@ -1283,7 +1227,6 @@ sub hardware_info
       'maxpower'        => '28',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '2400',
     },
     'MikroTik RouterBOARD LHG 5nD' => {
       'name'            => 'MikroTik RouterBOARD LHG 5nD',
@@ -1292,7 +1235,6 @@ sub hardware_info
       'maxpower'        => '25',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
     },
     'MikroTik RouterBOARD RBLHG-5nD' => {
       'name'            => 'MikroTik RouterBOARD RBLHG-5nD',
@@ -1301,7 +1243,6 @@ sub hardware_info
       'maxpower'        => '25',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
     },
     'MikroTik RouterBOARD LHG 2nD' => {
       'name'            => 'MikroTik RouterBOARD LHG 2nD',
@@ -1310,7 +1251,6 @@ sub hardware_info
       'maxpower'        => '28',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '2400',
     },
     'MikroTik RouterBOARD RBLHG 2nD' => {
       'name'            => 'MikroTik RouterBOARD RBLHG 2nD',
@@ -1319,7 +1259,6 @@ sub hardware_info
       'maxpower'        => '28',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '2400',
     },
     'MikroTik RouterBOARD RBLHG-2nD' => {
       'name'            => 'MikroTik RouterBOARD RBLHG-2nD',
@@ -1328,7 +1267,6 @@ sub hardware_info
       'maxpower'        => '28',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '2400',
     },
     'MikroTik RouterBOARD LHG 2nD-XL' => {
       'name'            => 'MikroTik RouterBOARD LHG 2nD-XL',
@@ -1337,7 +1275,6 @@ sub hardware_info
       'maxpower'        => '25',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '2400',
     },
     'MikroTik RouterBOARD RBLHG 2nD-XL' => {
       'name'            => 'MikroTik RouterBOARD RBLHG 2nD-XL',
@@ -1346,7 +1283,6 @@ sub hardware_info
       'maxpower'        => '25',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '2400',
     },
     'MikroTik RouterBOARD RBLHG-2nD-XL' => {
       'name'            => 'MikroTik RouterBOARD RBLHG-2nD-XL',
@@ -1355,7 +1291,6 @@ sub hardware_info
       'maxpower'        => '25',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '2400',
     },
     'MikroTik RouterBOARD LHG 5HPnD' => {
       'name'            => 'MikroTik RouterBOARD LHG 5HPnD',
@@ -1364,7 +1299,6 @@ sub hardware_info
       'maxpower'        => '28',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
     },
     'MikroTik RouterBOARD RBLHG-5HPnD' => {
       'name'            => 'MikroTik RouterBOARD RBLHG-5HPnD',
@@ -1373,7 +1307,6 @@ sub hardware_info
       'maxpower'        => '28',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
     },
     'MikroTik RouterBOARD LHG 5HPnD-XL' => {
       'name'            => 'MikroTik RouterBOARD LHG 5HPnD-XL',
@@ -1382,7 +1315,6 @@ sub hardware_info
       'maxpower'        => '28',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
     },
     'MikroTik RouterBOARD SXTsq 5nD' => {
       'name'            => 'MikroTik RouterBOARD SXTsq 5nD',
@@ -1391,7 +1323,6 @@ sub hardware_info
       'maxpower'        => '25',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
     },
     'MikroTik RouterBOARD RBSXTsq5nD' => {
       'name'            => 'MikroTik RouterBOARD RBSXTsq5nD',
@@ -1400,7 +1331,6 @@ sub hardware_info
       'maxpower'        => '25',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
     },
     'MikroTik RouterBOARD SXTsq 2nD' => {
       'name'            => 'MikroTik RouterBOARD SXTsq 2nD',
@@ -1409,7 +1339,6 @@ sub hardware_info
       'maxpower'        => '30',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '2400',
     },
     'MikroTik RouterBOARD RBSXTsq2nD' => {
       'name'            => 'MikroTik RouterBOARD RBSXTsq2nD',
@@ -1418,7 +1347,6 @@ sub hardware_info
       'maxpower'        => '30',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '2400',
     },
     'MikroTik RouterBOARD SXTsq 5HPnD' => {
       'name'            => 'MikroTik RouterBOARD SXTsq 5HPnD',
@@ -1427,7 +1355,6 @@ sub hardware_info
       'maxpower'        => '28',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
     },
     'MikroTik RouterBOARD RBSXTsq5HPnD' => {
       'name'            => 'MikroTik RouterBOARD RBSXTsq5HPnD',
@@ -1436,7 +1363,6 @@ sub hardware_info
       'maxpower'        => '28',
       'pwroffset'       => '0',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
     },
     '0xe005' => {
       'name'            => 'NanoStation M5',
@@ -1445,7 +1371,6 @@ sub hardware_info
       'maxpower'        => '22',
       'pwroffset'       => '5',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
     },
     '0xe009' => {
       'name'            => 'NanoStation Loco M9',
@@ -1463,7 +1388,6 @@ sub hardware_info
       'maxpower'        => '18',
       'pwroffset'       => '10',
       'usechains'       => 1,
-      'rfband'          => '2400',
     },
     '0xe035' => {
       'name'            => 'NanoStation M3',
@@ -1481,7 +1405,6 @@ sub hardware_info
       'maxpower'        => '18',
       'pwroffset'       => '5',
       'usechains'       => 1,
-      'rfband'          => '2400',
     },
     '0xe0a5' => {
       'name'            => 'NanoStation Loco M5',
@@ -1490,7 +1413,6 @@ sub hardware_info
       'maxpower'        => '22',
       'pwroffset'       => '1',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
     },
     '0xe105' => {
       'name'            => 'Rocket M5',
@@ -1499,7 +1421,6 @@ sub hardware_info
       'maxpower'        => '22',
       'pwroffset'       => '5',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
     },
     '0xe112' => {
       'name'            => 'Rocket M2 with USB',
@@ -1517,7 +1438,6 @@ sub hardware_info
       'maxpower'        => '18',
       'pwroffset'       => '10',
       'usechains'       => 1,
-      'rfband'          => '2400',
     },
     '0xe1b5' => {
       'name'            => 'Rocket M5',
@@ -1526,7 +1446,6 @@ sub hardware_info
       'maxpower'        => '22',
       'pwroffset'       => '5',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
     },
     '0xe1b9' => {
       'name'            => 'Rocket M9',
@@ -1553,7 +1472,6 @@ sub hardware_info
       'maxpower'        => '22',
       'pwroffset'       => '5',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
     },
     '0xe1d2' => {
       'name'            => 'Rocket M2 Titanum',
@@ -1562,7 +1480,6 @@ sub hardware_info
       'maxpower'        => '18',
       'pwroffset'       => '10',
       'usechains'       => 1,
-      'rfband'          => '2400',
     },
     '0xe1d5' => {
       'name'            => 'Rocket M5 Titanium GPS',
@@ -1571,7 +1488,6 @@ sub hardware_info
       'maxpower'        => '22',
       'pwroffset'       => '5',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
     },
     '0xe202' => {
       'name'            => 'Bullet M2 HP',
@@ -1580,7 +1496,6 @@ sub hardware_info
       'maxpower'        => '16',
       'pwroffset'       => '12',
       'usechains'       => 0,
-      'rfband'          => '2400',
     },
     '0xe205' => {
       'name'            => 'Bullet M5',
@@ -1589,7 +1504,6 @@ sub hardware_info
       'maxpower'        => '19',
       'pwroffset'       => '6',
       'usechains'       => 0,
-      'rfband'          => '5800ubntus',
     },
     '0xe212' => {
       'name'            => 'airGrid M2',
@@ -1598,7 +1512,6 @@ sub hardware_info
       'maxpower'        => '28',
       'pwroffset'       => '0',
       'usechains'       => 0,
-      'rfband'          => '2400',
     },
     '0xe215' => {
       'name'            => 'airGrid M5',
@@ -1607,7 +1520,6 @@ sub hardware_info
       'maxpower'        => '19',
       'pwroffset'       => '1',
       'usechains'       => 0,
-      'rfband'          => '5800ubntus',
     },
     '0xe232' => {
       'name'            => 'NanoBridge M2',
@@ -1616,7 +1528,6 @@ sub hardware_info
       'maxpower'        => '21',
       'pwroffset'       => '2',
       'usechains'       => 1,
-      'rfband'          => '2400',
     },
     '0xe235' => {
       'name'            => 'NanoBridge M5',
@@ -1625,7 +1536,6 @@ sub hardware_info
       'maxpower'        => '22',
       'pwroffset'       => '1',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
     },
     '0xe239' => {
       'name'            => 'NanoBridge M9',
@@ -1643,7 +1553,6 @@ sub hardware_info
       'maxpower'        => '19',
       'pwroffset'       => '9',
       'usechains'       => 0,
-      'rfband'          => '2400',
     },
     '0xe243' => {
       'name'            => 'NanoBridge M3',
@@ -1661,7 +1570,6 @@ sub hardware_info
       'maxpower'        => '19',
       'pwroffset'       => '9',
       'usechains'       => 0,
-      'rfband'          => '2400',
     },
     '0xe245' => {
       'name'            => 'airGrid M5 HP',
@@ -1670,7 +1578,6 @@ sub hardware_info
       'maxpower'        => '19',
       'pwroffset'       => '6',
       'usechains'       => 0,
-      'rfband'          => '5800ubntus',
     },
     '0xe255' => {
       'name'            => 'airGrid M5 HP',
@@ -1679,7 +1586,6 @@ sub hardware_info
       'maxpower'        => '19',
       'pwroffset'       => '6',
       'usechains'       => 0,
-      'rfband'          => '5800ubntus',
     },
     '0xe2b5' => {
       'name'            => 'NanoBridge M5',
@@ -1688,7 +1594,6 @@ sub hardware_info
       'maxpower'        => '22',
       'pwroffset'       => '1',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
     },
     '0xe2c2' => {
       'name'            => 'NanoBeam M2 International',
@@ -1697,7 +1602,6 @@ sub hardware_info
       'maxpower'        => '18',
       'pwroffset'       => '10',
       'usechains'       => 1,
-      'rfband'          => '2400',
     },
     '0xe2c4' => {
       'name'            => 'Bullet M2 XW',
@@ -1706,7 +1610,6 @@ sub hardware_info
       'maxpower'        => '19',
       'pwroffset'       => '6',
       'usechains'       => 0,
-      'rfband'          => '2400',
     },
     '0xe2d2' => {
       'name'            => 'Bullet M2 Titanium HP',
@@ -1715,7 +1618,6 @@ sub hardware_info
       'maxpower'        => '16',
       'pwroffset'       => '12',
       'usechains'       => 0,
-      'rfband'          => '2400',
     },
     '0xe2d5' => {
       'name'            => 'Bullet M5 Titanium',
@@ -1724,7 +1626,6 @@ sub hardware_info
       'maxpower'        => '19',
       'pwroffset'       => '6',
       'usechains'       => 0,
-      'rfband'          => '5800ubntus',
     },
     '0xe302' => {
       'name'            => 'PicoStation M2',
@@ -1733,7 +1634,6 @@ sub hardware_info
       'maxpower'        => '16',
       'pwroffset'       => '12',
       'usechains'       => 0,
-      'rfband'          => '2400',
     },
     '0xe3e5' => {
       'name'            => 'PowerBeam M5 XW 300',
@@ -1742,7 +1642,6 @@ sub hardware_info
       'maxpower'        => '22',
       'pwroffset'       => '4',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
     },
     '0xe4a2' => {
       'name'            => 'AirRouter',
@@ -1751,7 +1650,6 @@ sub hardware_info
       'maxpower'        => '19',
       'pwroffset'       => '1',
       'usechains'       => 0,
-      'rfband'          => '2400',
     },
     '0xe4b2' => {
       'name'            => 'AirRouter HP',
@@ -1760,7 +1658,6 @@ sub hardware_info
       'maxpower'        => '19',
       'pwroffset'       => '9',
       'usechains'       => 0,
-      'rfband'          => '2400',
     },
     '0xe4d5' => {
       'name'            => 'Rocket M5 Titanium',
@@ -1769,7 +1666,6 @@ sub hardware_info
       'maxpower'        => '22',
       'pwroffset'       => '5',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
     },
     '0xe4e5' => {
       'name'            => 'PowerBeam M5 400',
@@ -1778,7 +1674,6 @@ sub hardware_info
       'maxpower'        => '22',
       'pwroffset'       => '4',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
     },
     '0xe6e5' => {
       'name'            => 'PowerBeam M5 400-ISO',
@@ -1787,7 +1682,22 @@ sub hardware_info
       'maxpower'        => '22',
       'pwroffset'       => '4',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
+    },
+    '0xe7fb' => {
+      'name'            => 'NanoStation 5AC',
+      'comment'         => 'NanoStation 5AC (WA)',
+      'supported'       => '1',
+      'maxpower'        => '23',
+      'pwroffset'       => '2',
+      'usechains'       => 1,
+    },
+    '0xe7fc' => {
+      'name'            => 'Ubiquiti NanoBeam AC Gen2 (WA)',
+      'comment'         => '',
+      'supported'       => '1',
+      'maxpower'        => '27',
+      'pwroffset'       => '2',
+      'usechains'       => 1,
     },
     '0xe805' => {
       'name'            => 'NanoStation M5',
@@ -1796,7 +1706,6 @@ sub hardware_info
       'maxpower'        => '22',
       'pwroffset'       => '5',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
     },
     '0xe825' => {
       'name'            => 'NanoBeam M5 19',
@@ -1805,7 +1714,6 @@ sub hardware_info
       'maxpower'        => '22',
       'pwroffset'       => '4',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
     },
     '0xe835' => {
       'name'            => 'AirGrid M5 XW',
@@ -1814,7 +1722,6 @@ sub hardware_info
       'maxpower'        => '19',
       'pwroffset'       => '6',
       'usechains'       => 0,
-      'rfband'          => '5800ubntus',
     },
     '0xe845' => {
       'name'            => 'NanoStation Loco M5 XW',
@@ -1823,7 +1730,6 @@ sub hardware_info
       'maxpower'        => '22',
       'pwroffset'       => '1',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
     },
     '0xe855' => {
       'name'            => 'NanoStation M5 XW',
@@ -1832,7 +1738,6 @@ sub hardware_info
       'maxpower'        => '22',
       'pwroffset'       => '5',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
     },
     '0xe865' => {
       'name'            => 'LiteBeam M5',
@@ -1841,7 +1746,6 @@ sub hardware_info
       'maxpower'        => '19',
       'pwroffset'       => '6',
       'usechains'       => 0,
-      'rfband'          => '5800ubntus',
     },
     '0xe866' => {
       'name'            => 'NanoStation M2 XW',
@@ -1850,7 +1754,6 @@ sub hardware_info
       'maxpower'        => '22',
       'pwroffset'       => '6',
       'usechains'       => 1,
-      'rfband'          => '2400',
     },
     '0xe867' => {
       'name'            => 'NanoStation Loco M2 XW',
@@ -1859,7 +1762,6 @@ sub hardware_info
       'maxpower'        => '21',
       'pwroffset'       => '2',
       'usechains'       => 1,
-      'rfband'          => '2400',
     },
     '0xe868' => {
       'name'            => 'Rocket M2 XW',
@@ -1868,7 +1770,6 @@ sub hardware_info
       'maxpower'        => '21',
       'pwroffset'       => '7',
       'usechains'       => 1,
-      'rfband'          => '2400',
     },
     '0xe885' => {
       'name'            => 'PowerBeam M5 620 XW',
@@ -1877,7 +1778,6 @@ sub hardware_info
       'maxpower'        => '22',
       'pwroffset'       => '4',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
     },
     '0xe8a5' => {
       'name'            => 'NanoStation Loco M5',
@@ -1886,7 +1786,6 @@ sub hardware_info
       'maxpower'        => '22',
       'pwroffset'       => '1',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
     },
     '0xe6b5' => {
       'name'            => 'Rocket M5 XW',
@@ -1895,7 +1794,6 @@ sub hardware_info
       'maxpower'        => '22',
       'pwroffset'       => '5',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
     },
     '0xe812' => {
       'name'            => 'NanoBeam M2 13',
@@ -1904,7 +1802,6 @@ sub hardware_info
       'maxpower'        => '22',
       'pwroffset'       => '6',
       'usechains'       => 1,
-      'rfband'          => '2400',
     },
     '0xe815' => {
       'name'            => 'NanoBeam M5 16',
@@ -1913,7 +1810,6 @@ sub hardware_info
       'maxpower'        => '22',
       'pwroffset'       => '4',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
     },
     '0xe1a5' => {
       'name'            => 'PowerBridge M5',
@@ -1922,7 +1818,6 @@ sub hardware_info
       'maxpower'        => '22',
       'pwroffset'       => '5',
       'usechains'       => 1,
-      'rfband'          => '5800ubntus',
     },
   );
 
@@ -2017,8 +1912,8 @@ sub alert_banner
       print "<div style=\"padding:5px;background-color:yellow;color:black;border:1px solid #ccc;width:600px;\"><a href=\"/cgi-bin/sysinfo\">!!!! UNTESTED HARDWARE !!!!</a></div>\n";
     }
   }
-  print "<div style=\"padding:5px;background-color:#fff380;color:black;border:1px solid #ccc;width:600px;\"><strong>AREDN Alert(s):</strong><br /><div style=\"text-align:left;\">$aredn_message</div></div>\n" if $aredn_message;
-  print "<div style=\"padding:5px;background-color:#fff380;color:black;border:1px solid #ccc;width:600px;\"><strong>Local Alert(s):</strong><br /><div style=\"text-align:left;\">$local_message</div></div>\n" if $local_message;
+  print "<div style=\"padding:5px;background-color:yellow;color:black;border:1px solid #ccc;width:600px;\"><strong>AREDN Alert(s):</strong><br /><div style=\"text-align:left;\">$aredn_message</div></div>\n" if $aredn_message;
+  print "<div style=\"padding:5px;background-color:yellow;color:black;border:1px solid #ccc;width:600px;\"><strong>Local Alert(s):</strong><br /><div style=\"text-align:left;\">$local_message</div></div>\n" if $local_message;
 
   #TopBanner
   print "</div>";
@@ -2038,61 +1933,47 @@ sub page_footer
 
 sub get_interface
 {
+  # after saving in basic setup, all hardware has
+  # the following interface definitions:
+  # 	lan is br-lan interface
+  # 	wan is br-wan interface, unless wan wifi client then wlan*
+  # 	dtdlink is br-dtdlink interface
+  # 	wifi is dynamically set and current interface is in /etc/config/network
+  #
+  # At fist boot:
+  # 	lan is br-lan interface
+  # 	wan is dependent on device and determined from /etc/config/network
+  # 	dtdlink is not relevant, but configured in /etc/config/network
+  # 	wifi is not relevant, wireless cards are bridged into lan
+  #
   my ($intf) = @_;
-  my $bridge = `uci -q get network.$intf.type`;
-  chomp $bridge;
-  if ( "$bridge" eq "bridge" ) {
-    $intfname = "br-${intf}";
-  } else {
-      $intfname = `uci -q get network.$intf.ifname | cut -f1`;
-  }
-  chomp $intfname;
 
-  if ($intfname) {
-    return $intfname;
-  } else {
-    # guess at most common interface options
-    if ( $intf eq "lan" )
-    {
-      return "eth0";
-    } elsif ( $intf eq "wan" ){
-      return "eth0.1";
-    } elsif ( $intf eq "wifi" ){
-      return "wlan0";
-    } elsif ( $intf eq "dtdlink" ){
-      return "eth0.2";
-    } else {
-      # we have a problem
-      die("Unknown interface in call to get_interface");
+  if ( $intf eq "wifi" ) {
+    my $gi_wifiintf=`uci -q get network.wifi.device`;
+    chomp $gi_wifiintf;
+    return $gi_wifiintf;
+  }
+  
+  my $gi_config = nvram_get("config");
+  my $device = `jsonfilter -q -i /etc/board.json -e @.network.$intf.device`;	
+  chomp $device;
+  if ( $gi_config eq "" and $device and $intf ne "lan") {
+    # firstboot and 1 port hardware and not lan interface
+    return $device;
+  }
+
+  # check for wan wifi client
+  if ( $intf eq "wan" ) {
+    my $is_bridge = `uci -q get network.\@device[1].type`;
+    if ( $is_bridge eq "" ) {
+      my $gi_wanintf=`uci -q get network.wan.device`;
+      chomp $gi_wanintf;
+      return $gi_wanintf;
     }
   }
-}
 
-sub get_bridge_interfaces
-{
-  my ($intf) = @_;
-  my $bridge = `uci -q get network.$intf.type`;
-  my $intfname = `uci -q get network.$intf.ifname`;
-  chomp $intfname;
-
-  if ($intfname) {
-    return $intfname;
-  } else {
-    # guess at most common interface options
-    if ( $intf eq "lan" )
-    {
-      return "eth0";
-    } elsif ( $intf eq "wan" ){
-      return "eth0.1";
-    } elsif ( $intf eq "wifi" ){
-      return "wlan0";
-    } elsif ( $intf eq "dtdlink" ){
-      return "eth0.2";
-    } else {
-      # we have a problem
-      die("Unknown interface in call to get_interface");
-    }
-  }
+  # all other situations are bridged interfaces
+  return "br-$intf";
 }
 
 sub reboot_required()
