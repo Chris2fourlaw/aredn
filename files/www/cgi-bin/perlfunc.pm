@@ -1683,6 +1683,14 @@ sub hardware_info
       'pwroffset'       => '4',
       'usechains'       => 1,
     },
+    '0xe7fa' => {
+      'name'            => 'NanoStation 5AC loco',
+      'comment'         => 'NanoStation 5AC loco (WA)',
+      'supported'       => '1',
+      'maxpower'        => '22',
+      'pwroffset'       => '1',
+      'usechains'       => 1,
+    },
     '0xe7fb' => {
       'name'            => 'NanoStation 5AC',
       'comment'         => 'NanoStation 5AC (WA)',
@@ -1953,9 +1961,9 @@ sub get_interface
     chomp $gi_wifiintf;
     return $gi_wifiintf;
   }
-  
+
   my $gi_config = nvram_get("config");
-  my $device = `jsonfilter -q -i /etc/board.json -e @.network.$intf.device`;	
+  my $device = `jsonfilter -q -i /etc/board.json -e @.network.$intf.device`;
   chomp $device;
   if ( $gi_config eq "" and $device and $intf ne "lan") {
     # firstboot and 1 port hardware and not lan interface
